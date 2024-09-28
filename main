@@ -1,0 +1,87 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <unordered_map>
+#include <vector>
+#include <algorithm>
+
+class WordCounter {
+public:
+    std::unordered_map<std::string, int> countWordsInFile(const std::string& filename) {
+        std::ifstream file(filename);
+        std::string line;
+        std::unordered_map<std::string, int> wordCount;
+
+        if (file.is_open()) {
+            while (std::getline(file, line)) {
+                std::istringstream stream(line);
+                std::string word;
+
+                while (stream >> word) {
+                    wordCount[word]++;
+                }
+            }
+            file.close();
+        } else {
+            std::cerr << "Unable to open file: " << filename << std::endl;
+        }
+
+        return wordCount;
+    }
+
+    std::vector<std::pair<std::string, int>> getSortedWords(const std::unordered_map<std::string, int>& wordCounts) {
+        std::vector<std::pair<std::string, int>> sortedWords;
+        for (const auto& pair : wordCounts) {
+            sortedWords.emplace_back(pair.first, pair.second);
+        }
+
+        std::sort(sortedWords.begin(), sortedWords.end(),
+                  [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b) {
+                      return a.second > b.second;
+                  });
+
+        return sortedWords;
+    }
+
+    void writeToCSV(const std::vector<std::pair<std::string, int>>& sortedWords, const std::string& outputFilename, int totalWords) {
+        std::ofstream outputFile(outputFilename);
+        if (!outputFile.is_open()) {
+            std::cerr << "Unable to open output file: " << outputFilename << std::endl;
+            return;
+        }
+
+        outputFile << "Слово,Частота,Частота в %" << std::endl;
+
+        for (const auto& pair : sortedWords) {
+            double percentageOfTotal = static_cast<double>(pair.second) / totalWords * 100.0;
+            outputFile << pair.first << "," << pair.second << "," << percentageOfTotal << "%" << std::endl;
+            if (!outputFile) {
+                std::cerr << "Error writing to output file: " << outputFilename << std::endl;
+                outputFile.close();
+                return;
+            }
+        }
+
+        outputFile.close();
+        std::cout << "Results written to " << outputFilename << std::endl;
+    }
+};
+
+int main() {
+    std::string filename = "Текст.txt";
+    std::string outputFilename = "output.csv";
+
+    WordCounter wordCounter;
+    std::unordered_map<std::string, int> wordCounts = wordCounter.countWordsInFile(filename);
+    std::vector<std::pair<std::string, int>> sortedWords = wordCounter.getSortedWords(wordCounts);
+
+    int totalWords = 0;
+    for (const auto& pair : sortedWords) {
+        totalWords += pair.second;
+    }
+
+    wordCounter.writeToCSV(sortedWords, outputFilename, totalWords);
+
+    return 0;
+}
